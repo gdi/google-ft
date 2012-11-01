@@ -1,4 +1,4 @@
-fusion_table_fu
+google_ft
 ===============
 
-Google Fusion Tables ruby API using Curb-Fu
+Google Fusion Tables API for ruby.
