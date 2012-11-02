@@ -1,36 +1,53 @@
 class GoogleFT
   class Table
-    attr_accessor :columns, :id, :name, :description, :exportable, :token
+    # Base URI for the fusion tables API.
+    $FT_BASE_URI = 'https://www.googleapis.com/fusiontables/v1/tables'
 
     class << self
+      # Show a list of tables, requires the authentication token.
+      def show_tables(token)
+        args = {
+          :uri => "#{$FT_BASE_URI}",
+          :method => 'get',
+          :headers => {
+            'Authorization' => "Bearer #{token}"
+          }
+        }
+        GoogleFT.get_and_parse_response(args)
+      end
+
+      # Get a table by it's ID and return a table object.
       def get_table_by_id(table_id, token = nil)
         args = {
-          :uri => "https://www.googleapis.com/fusiontables/v1/tables/#{table_id}",
+          :uri => "#{$FT_BASE_URI}/#{table_id}",
           :method => 'get'
         }
-        args[:headers] = {'Authorization' => "Bearer #{token}"} if token
-        response = GoogleSAAuth::Client.run(args)
 
-        # Make sure we get a 200 response.
-        raise RuntimeError unless response.status == 200
+        # Add the auth token if it was provided.
+        args[:headers] = {'Authorization' => "Bearer #{token}"} unless token.nil?
 
-        # Parse response.
-        result = JSON.parse(response.body)
+        # Get and parse results.
+        result = GoogleFT.get_and_parse_response(args)
         GoogleFT::Table.new(
           :token => token,
-          :id => result['tableId'],
-          :name => result['name'],
-          :columns => result['columns'],
-          :description => result['description'],
-          :exportable => result['isExportable']
+          :id => result[:tableId],
+          :name => result[:name],
+          :columns => result[:columns],
+          :description => result[:description],
+          :exportable => result[:isExportable]
         )
       end
     end
 
+
+    # Accessors.
+    attr_accessor :columns, :id, :name, :description, :exportable, :token
+    attr_accessor :permissions
+
+    # Create a new table object.
     def initialize(args = {})
       # Clean-up args.
-      args = args.inject({}){|item,(k,v)| item[k.to_sym] = v; item}
-      args = args.delete_if {|k,v| ![:id, :name, :columns, :description, :exportable, :token].include?(k)}
+      args = args.symbolize.delete_if {|k,v| ![:id, :name, :columns, :description, :exportable, :token].include?(k)}
 
       # Create nicely formated columns.
       self.columns = args[:columns].nil? ? [] : args[:columns].each.collect do |col|
@@ -47,8 +64,25 @@ class GoogleFT
       self.exportable = args[:exportable].nil? ? false : args[:exportable]
     end
 
+    # Delete a table.
+    def delete
+      args = {
+        :uri => "#{$FT_BASE_URI}/#{self.id}",
+        :headers => {
+          'Authorization' => "Bearer #{self.token}",
+        },
+        :data => '',
+        :method => 'delete'
+      }
+      GoogleFT.get_and_parse_response(args)
+      true
+    end
+
+    # Save this table to Google.
+    #   Used for creating or updating tables.
     def save
-      # Attempt to save this table to google via curb-fu post.
+      # If ID exists, we are updating a table,
+      #  otherwise, we are creating it.
       method = self.id.nil? ? 'post' : 'put'
       uri = 'https://www.googleapis.com/fusiontables/v1/tables'
       uri += "/#{self.id}" unless self.id.nil?
@@ -56,32 +90,71 @@ class GoogleFT
         :uri => uri,
         :headers => {
           'Content-Type' => 'application/json',
+          'Authorization' => "Bearer #{self.token}"
         },
         :data => post_args,
         :method => method
       }
-      args[:headers]['Authorization'] = "Bearer #{self.token}" unless self.token.nil?
-      response = GoogleSAAuth::Client.run(args)
-
-      # Make sure we got a 200 response.
-      raise RuntimeError unless response.status == 200
-
-      # Parse the results.
-      result = JSON.parse(response.body).inject({}){|item,(k,v)| item[k.to_sym] = v; item}
+      result = GoogleFT.get_and_parse_response(args)
       self.id = result[:tableId]
       result
     end
 
-  private
-    def post_args
-      # Return the JSON string of our table arguments.
+    # Set permissions for a table.
+    def set_permissions(permission)
       args = {
+        :uri => "https://www.googleapis.com/drive/v2/files/#{self.id}/permissions",
+        :headers => {
+          'Content-Type' => 'application/json',
+          'Authorization' => "Bearer #{self.token}"
+        },
+        :method => 'post',
+        :data => permission.post_args
+      }
+      GoogleFT.get_and_parse_response(args)
+    end
+
+    # Return the JSON string of our table arguments.
+    #   Used for creating and updating tables.
+    def post_args
+      {
         :name => self.name,
         :columns => self.columns.each.collect {|col| {:name => col.name, :type => col.type}},
         :isExportable => self.exportable,
         :description => self.description
+      }.to_json
+    end
+
+    # Insert rows into a table.
+    def insert(rows)
+      # Get the SQL-ish statement from arg hash.
+      inserts = []
+
+      # Go through each row.
+      rows.each do |row|
+
+        # Get all of the column/value pairs.
+        columns = []
+        values = []
+        row.each do |column,value|
+          columns.push(column)
+          values.push(value)
+        end
+
+        # Add this insert line.
+        inserts.push("INSERT INTO #{self.id} (#{columns.join(',')}) VALUES (#{values.each.collect {|v| GoogleFT.to_google_ft_format(v)}.join(',')});")
+      end
+
+      # Post the insert's to Google.
+      args = {
+        :uri => 'https://www.googleapis.com/fusiontables/v1/query',
+        :headers => {
+          'Authorization' => "Bearer #{self.token}"
+        },
+        :method => 'post',
+        :data => "sql=#{inserts.join("\n")}"
       }
-      args.to_json
+      GoogleFT.get_and_parse_response(args)
     end
   end
 end
