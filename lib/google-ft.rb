@@ -56,7 +56,7 @@ class GoogleFT
 
   def show_tables
     require_auth
-    GoogleFT::Table.get_tables(@authorization.token_string)
+    GoogleFT::Table.show_tables(@authorization.token_string)
   end
 
   def create_table(args)
@@ -67,6 +67,11 @@ class GoogleFT
     table = GoogleFT::Table.new(args)
     table.save
     table
+  end
+
+  def delete_table(table_id)
+    require_auth
+    GoogleFT::Table.get_table_by_id(table_id, @authorization.token_string).delete
   end
 
   def get_table(table_id)

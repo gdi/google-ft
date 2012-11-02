@@ -13,7 +13,19 @@ class GoogleFT
             'Authorization' => "Bearer #{token}"
           }
         }
-        GoogleFT.get_and_parse_response(args)
+        result = GoogleFT.get_and_parse_response(args)
+        return [] if result[:items].nil?
+        result[:items].each.collect do |table|
+          table = table.symbolize
+          GoogleFT::Table.new(
+            :token => token,
+            :id => table[:tableId],
+            :name => table[:name],
+            :columns => table[:columns],
+            :description => table[:description],
+            :exportable => table[:isExportable]
+          )
+        end
       end
 
       # Get a table by it's ID and return a table object.
