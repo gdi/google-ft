@@ -1,2 +1,2 @@
-gem 'json'
-gem 'google-jwt'
+source "http://rubygems.org"
+gemspec
