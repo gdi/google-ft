@@ -31,7 +31,10 @@ class GoogleFT
       response = GoogleSAAuth::Client.run(args)
 
       # Make sure we get a 20* status.
-      raise RuntimeError unless response.status.to_s =~ /^20/
+      unless response.status.to_s =~ /^20/
+        puts response.body.to_s
+        raise RuntimeError
+      end
 
       # Return the symbolized hash of the response body.
       begin
@@ -88,6 +91,6 @@ private
   end
 
   def require_auth
-    rase RuntimeError 'Must get authentication token!' unless has_auth?
+    raise RuntimeError unless has_auth?
   end
 end
