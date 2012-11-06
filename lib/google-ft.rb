@@ -19,6 +19,8 @@ class GoogleFT
       if value.class == String
         bytes = value.bytes.each.collect {|l| l.chr.gsub(/\\|'/) { |c| "\\#{c}" }.gsub("\b", '\\b').gsub("\f", '\\f').gsub("\n", '\\n').gsub("\r", '\\r').gsub("\t",'\\t')}
         "'#{bytes.join}'"
+      elsif value.class == Array
+        "'#{value.first} #{value.last}'"
       else
         value.to_json
       end
