@@ -17,7 +17,7 @@ class GoogleFT
     # Method to convert values into google-compatible format.
     def to_google_ft_format(value)
       if value.class == String
-        bytes = value.bytes.each.collect {|l| l.chr.gsub(/\\|'/) { |c| "\\#{c}" }.gsub("\b", '\\b').gsub("\f", '\\f').gsub("\n", '\\n').gsub("\r", '\\r').gsub("\t",'\\t')}
+        bytes = value.bytes.each.collect {|l| l.chr.gsub(/\\|'/) { |c| "\\#{c}" }.gsub('&', '%26').gsub("\b", '\\b').gsub("\f", '\\f').gsub("\n", '\\n').gsub("\r", '\\r').gsub("\t",'\\t')}
         "'#{bytes.join}'"
       elsif value.class == Array
         "'#{value.first} #{value.last}'"
