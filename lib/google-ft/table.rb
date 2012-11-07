@@ -166,6 +166,7 @@ class GoogleFT
         :method => 'post',
         :data => "sql=#{inserts.join("\n")}"
       }
+puts "SQL:\n#{inserts.join("\n")}"
       GoogleFT.get_and_parse_response(args)
     end
   end
