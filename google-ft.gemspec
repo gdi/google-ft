@@ -3,10 +3,10 @@ $:.push File.expand_path("../lib", __FILE__)
 
 Gem::Specification.new do |s|
   s.name        = "google-ft"
-  s.version     = "0.0.3"
+  s.version     = "0.0.4"
   s.authors     = ["Jon Durbin"]
   s.email       = ["jond@greenviewdata.com"]
-  s.homepage    = "https://github.com/gdi/google-ft"
+  s.homepage    = "https://github.com/jondurbin/google-ft"
   s.summary     = %q{Work with Google Fusion Tables using a service account}
   s.description = %q{Work with Google Fusion Tables using a service account}
 
